@@ -6,30 +6,58 @@ import {
     updateContact,
 } from "../services/contacts.js";
 import createHttpError from "http-errors";
+import { parsePaginationParams } from "../utils/parsePaginationParams.js";
+import { parseSortParams } from "../utils/parseSortParams.js";
+import { parseFilterParams } from "../utils/parseFilterParams.js";
 
 export const getContactsController = async (req, res, next) => {
-    try {
-        const contacts = await getAllContacts();
+  try {
+    const { page, perPage } = parsePaginationParams(req.query);
+
+    const { sortBy, sortOrder } = parseSortParams(req.query);
+
+    const filter = parseFilterParams(req.query);
+
+    const { data: contacts, totalItems } = await getAllContacts({
+      page,
+      perPage,
+      sortBy,
+      sortOrder,
+      filter,
+    });
+
+    const totalPages = Math.ceil(totalItems / perPage);
+
+    const hasPreviousPage = page > 1;
+    const hasNextPage = page < totalPages;
 
     res.json({
-        status: 200,
-        message: "Successfully found contacts!",
+      status: 200,
+      message: "Successfully found contacts!",
+      data: {
         data: contacts,
+        page,
+        perPage,
+        totalItems,
+        totalPages,
+        hasPreviousPage,
+        hasNextPage,
+      }
     });
-    } catch (err) {
-        next(err);
-    }
+  } catch (error) {
+    next(error);
+  }
 };
+
 
 export const getContactByIdController = async (req, res) => {
     const { contactId } = req.params;
     const contact = await getContactById(contactId);
 
-    // Відповідь, якщо контакт не знайдено
     if (!contact) {
         throw createHttpError(404, 'Contact not found');
     }
-    // Відповідь, якщо контакт знайдено
+
     res.json({
         status: 200,
         message: `Successfully found contact with id ${contactId}!`,
