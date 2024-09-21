@@ -18,6 +18,8 @@ export const getContactsController = async (req, res, next) => {
 
     const filter = parseFilterParams(req.query);
 
+    filter.userId = req.user._id;
+
     const { data: contacts, totalItems } = await getAllContacts({
       page,
       perPage,
@@ -54,8 +56,8 @@ export const getContactByIdController = async (req, res) => {
     const { contactId } = req.params;
     const contact = await getContactById(contactId);
 
-    if (!contact) {
-        throw createHttpError(404, 'Contact not found');
+    if (!contact || contact.userId.toString() !== req.user._id.toString()) {
+      throw createHttpError(404, 'Contact not found or access denied');
     }
 
     res.json({
@@ -66,7 +68,11 @@ export const getContactByIdController = async (req, res) => {
 };
 
 export const createContactController = async (req, res) => {
-    const contact = await createContact(req.body);
+  const contactData = {
+    ...req.body,
+    userId: req.user._id,
+  };
+    const contact = await createContact(contactData);
 
     res.status(201).json({
     status: 201,
@@ -78,49 +84,63 @@ export const createContactController = async (req, res) => {
 export const deleteContactController = async (req, res, next) => {
     const { contactId } = req.params;
 
-    const contact = await deleteContact(contactId);
+    const contact = await getContactById(contactId);
 
-    if (!contact) {
-        next(createHttpError(404, 'Contact not found'));
-        return;
+    if (!contact || contact.userId.toString() !== req.user._id.toString()) {
+      return next(createHttpError(404, 'Contact not found or access denied'));
     }
+
+    await deleteContact(contactId);
 
     res.status(204).send();
 };
 
 export const upsertContactController = async (req, res, next) => {
-    const { contactId } = req.params;
+  const { contactId } = req.params;
 
-    const result = await updateContact(contactId, req.body, {
-    upsert: true,
-  });
+  const existingContact = await getContactById(contactId);
 
-  if (!result) {
-    next(createHttpError(404, 'Contact not found'));
-    return;
+  if (!existingContact) {
+
+    const contactData = {
+      ...req.body,
+      userId: req.user._id,
+    };
+    const newContact = await createContact(contactData);
+    return res.status(201).json({
+      status: 201,
+      message: `Successfully created a contact!`,
+      data: newContact,
+    });
   }
 
-  const status = result.isNew ? 201 : 200;
+  if (existingContact.userId.toString() !== req.user._id.toString()) {
+    return next(createHttpError(403, 'Access denied to this contact'));
+  }
 
-  res.status(status).json({
-    status,
-    message: `Successfully upserted a contact!`,
-    data: result.student,
+  const updatedContact = await updateContact(contactId, req.body);
+
+  res.status(200).json({
+    status: 200,
+    message: `Successfully updated the contact!`,
+    data: updatedContact,
   });
 };
 
 export const patchContactController = async (req, res, next) => {
   const { contactId } = req.params;
-  const result = await updateContact(contactId, req.body);
 
-  if (!result) {
-    next(createHttpError(404, 'Contact not found'));
-    return;
+  const contact = await getContactById(contactId);
+
+  if (!contact || contact.userId.toString() !== req.user._id.toString()) {
+    return next(createHttpError(404, 'Contact not found or access denied'));
   }
+
+  const updatedContact = await updateContact(contactId, req.body);
 
   res.json({
     status: 200,
-    message: `Successfully patched a contact!`,
-    data: result.student,
+    message: `Successfully patched the contact!`,
+    data: updatedContact,
   });
 };
