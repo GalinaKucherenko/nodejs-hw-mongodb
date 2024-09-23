@@ -1,4 +1,5 @@
 import { Schema, model } from "mongoose";
+import { setUpdateOptions, handleSaveError } from "./hooks";
 
 const contactsSchema = new Schema(
   {
@@ -35,4 +36,10 @@ const contactsSchema = new Schema(
   },
 );
 
-export const ContactsCollection = model('contacts', contactsSchema);
+contactsSchema.post("save", handleSaveError);
+contactsSchema.pre("findOneAndUpdate", setUpdateOptions);
+contactsSchema.post("findOneAndUpdate", handleSaveError);
+
+const ContactsCollection = model('contacts', contactsSchema);
+
+export default ContactsCollection;
