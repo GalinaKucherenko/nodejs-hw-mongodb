@@ -1,7 +1,7 @@
 import { model, Schema } from 'mongoose';
 import { ROLES } from '../../constants/index.js';
 import { emailRegexp } from '../../constants/users.js';
-import { setUpdateOptions, handleSaveError } from "./hooks";
+import { setUpdateOptions, handleSaveError } from "./hooks.js";
 
 const usersSchema = new Schema(
   {
@@ -21,6 +21,5 @@ usersSchema.post("save", handleSaveError);
 usersSchema.pre("findOneAndUpdate", setUpdateOptions);
 usersSchema.post("findOneAndUpdate", handleSaveError);
 
-const UsersCollection = model('users', usersSchema);
+export const UsersCollection = model('users', usersSchema);
 
-export default UsersCollection;

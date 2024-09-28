@@ -64,7 +64,6 @@ const setupSession = (res, session) => {
 };
 
 export const refreshUserSessionController = async (req, res, next) => {
-  try {
     const session = await refreshUsersSession({
       sessionId: req.cookies.sessionId,
       refreshToken: req.cookies.refreshToken,
@@ -79,7 +78,4 @@ export const refreshUserSessionController = async (req, res, next) => {
         accessToken: session.accessToken,
       },
     });
-  } catch (error) {
-    next(error);
-  }
 };
