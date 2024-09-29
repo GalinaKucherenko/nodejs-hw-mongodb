@@ -4,7 +4,7 @@ import { setUpdateOptions, handleSaveError } from "./hooks.js";
 
 const usersSchema = new Schema(
   {
-    username: { type: String, required: true },
+    name: { type: String, required: true },
     email: { type: String, match: emailRegexp, required: true, unique: true },
     password: { type: String, required: true },
   },
